@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>OCTANE — Med School AI Co-Pilot</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Fira+Code:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --void:#030306;--deep:#080810;--base:#0c0c14;--raised:#111120;--surface:#161628;
+  --hover:#1c1c34;--active:#22223a;
+  --accent:#ff6b2b;--accent2:#ff8a50;--ag:rgba(255,107,43,.10);--ags:rgba(255,107,43,.22);--ad:rgba(255,107,43,.05);
+  --cyan:#00d4ff;--cg:rgba(0,212,255,.10);--green:#00e676;--gg:rgba(0,230,118,.10);
+  --red:#ff3d5a;--purple:#b388ff;--yellow:#ffd740;
+  --t1:#f2f2fa;--t2:#c8c8e0;--t3:#8888a8;--t4:#555570;--t5:#333348;
+  --gl:rgba(255,255,255,.025);--gb:rgba(255,255,255,.055);--gh:rgba(255,255,255,.06);
+  --rs:8px;--rm:12px;--rl:16px;--rx:20px;--rf:999px;
+  --fast:.15s cubic-bezier(.4,0,.2,1);--smooth:.3s cubic-bezier(.4,0,.2,1);
+  --spring:.5s cubic-bezier(.175,.885,.32,1.275);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Outfit',sans-serif;background:var(--void);color:var(--t1);display:flex;-webkit-font-smoothing:antialiased}
+canvas#bg{position:fixed;inset:0;z-index:0;pointer-events:none}
+.grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.02;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat:repeat;background-size:128px}
+.app{display:flex;width:100%;height:100%;z-index:10;position:relative}
+
+/* ══════ SIDEBAR ══════ */
+.sb{width:260px;background:rgba(8,8,16,.88);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);
+  border-right:1px solid var(--gb);display:flex;flex-direction:column;flex-shrink:0;z-index:20}
+.sb::after{content:'';position:absolute;right:0;top:0;bottom:0;width:1px;
+  background:linear-gradient(180deg,var(--ags),transparent 20%,transparent 80%,var(--cg))}
+.sb-top{padding:18px 14px 14px}
+.logo-r{display:flex;align-items:center;gap:9px}
+.logo-m{width:36px;height:36px;border-radius:var(--rm);background:linear-gradient(135deg,var(--accent),var(--red));
+  display:flex;align-items:center;justify-content:center;font-size:17px;
+  box-shadow:0 0 18px rgba(255,107,43,.25);position:relative;overflow:hidden}
+.logo-m::after{content:'';position:absolute;inset:0;border-radius:inherit;
+  background:linear-gradient(135deg,rgba(255,255,255,.3),transparent 50%)}
+.logo-t{font-family:'Fira Code',monospace;font-weight:700;font-size:19px;letter-spacing:4px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2),var(--yellow));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.logo-sub{font-size:9px;font-weight:600;letter-spacing:2.5px;color:var(--t5);
+  text-transform:uppercase;padding-left:45px;margin-top:1px}
+.new-btn{width:calc(100% - 20px);margin:10px 10px 0;padding:9px 12px;
+  background:linear-gradient(135deg,var(--ags),var(--ad));border:1px solid rgba(255,107,43,.18);
+  border-radius:var(--rm);color:var(--accent);font-family:'Outfit',sans-serif;font-size:12.5px;
+  font-weight:600;cursor:pointer;transition:all var(--smooth);display:flex;align-items:center;gap:7px}
+.new-btn:hover{transform:translateY(-1px);border-color:rgba(255,107,43,.35);box-shadow:0 4px 18px rgba(255,107,43,.12)}
+.new-btn:active{transform:scale(.97)}
+
+.sb-lbl{font-size:9px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--t5);padding:14px 14px 5px}
+.nav{padding:0 6px}
+.ni{display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:var(--rs);cursor:pointer;
+  transition:all var(--fast);border:1px solid transparent;margin-bottom:1px;position:relative}
+.ni:hover{background:var(--gh)}
+.ni.on{background:var(--surface);border-color:var(--gb)}
+.ni.on::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
+  width:3px;height:15px;background:var(--accent);border-radius:0 3px 3px 0;box-shadow:0 0 8px var(--ags)}
+.ni-i{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;
+  font-size:13px;background:var(--gl);border:1px solid var(--gb);flex-shrink:0;transition:all var(--fast)}
+.ni.on .ni-i{background:var(--ad);border-color:rgba(255,107,43,.12)}
+.ni-t{font-size:12.5px;font-weight:500;color:var(--t3);transition:color var(--fast)}
+.ni:hover .ni-t{color:var(--t2)}
+.ni.on .ni-t{color:var(--t1);font-weight:600}
+
+.hist{flex:1;overflow-y:auto;padding:0 6px}
+.hist::-webkit-scrollbar{width:3px}
+.hist::-webkit-scrollbar-thumb{background:var(--t5);border-radius:4px}
+.hi{padding:7px 9px;border-radius:var(--rs);cursor:pointer;transition:background var(--fast);margin-bottom:1px}
+.hi:hover{background:var(--gh)}
+.hi-t{font-size:12px;font-weight:500;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hi-m{font-size:10px;color:var(--t5);margin-top:1px}
+
+.sb-bot{padding:10px 12px;border-top:1px solid var(--gb)}
+.xp-r{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.xp-l{font-family:'Fira Code',monospace;font-size:10px;font-weight:700;color:var(--accent);letter-spacing:1px}
+.xp-v{font-family:'Fira Code',monospace;font-size:9px;color:var(--t4)}
+.xp-trk{width:100%;height:3px;background:var(--active);border-radius:var(--rf);overflow:hidden;margin-bottom:9px}
+.xp-f{height:100%;width:65%;background:linear-gradient(90deg,var(--accent),var(--accent2));
+  border-radius:var(--rf);box-shadow:0 0 8px var(--ags);transition:width 1s ease}
+.ur{display:flex;align-items:center;gap:8px}
+.uav{width:30px;height:30px;border-radius:var(--rs);background:linear-gradient(135deg,var(--cyan),var(--purple));
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+.un{font-size:12px;font-weight:600}
+.ut{font-size:9.5px;color:var(--accent);font-weight:600}
+.strk{display:inline-flex;align-items:center;gap:2px;padding:1px 5px;background:var(--ad);
+  border-radius:var(--rf);font-family:'Fira Code',monospace;font-size:9px;font-weight:700;color:var(--accent);margin-left:4px}
+
+/* ══════ MAIN ══════ */
+.mn{flex:1;display:flex;flex-direction:column;min-width:0;z-index:10;position:relative}
+.tb{height:50px;padding:0 18px;border-bottom:1px solid var(--gb);display:flex;align-items:center;
+  justify-content:space-between;background:rgba(8,8,16,.5);backdrop-filter:blur(24px);
+  -webkit-backdrop-filter:blur(24px);flex-shrink:0}
+.tb-l{display:flex;align-items:center;gap:9px}
+.tb-m{font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+.bdg{font-family:'Fira Code',monospace;font-size:8px;font-weight:700;letter-spacing:1.5px;
+  text-transform:uppercase;padding:3px 8px;border-radius:var(--rf)}
+.ba{background:var(--ag);color:var(--accent);border:1px solid rgba(255,107,43,.12)}
+.bc{background:var(--cg);color:var(--cyan);border:1px solid rgba(0,212,255,.12)}
+.bg{background:var(--gg);color:var(--green);border:1px solid rgba(0,230,118,.12)}
+.bp{background:rgba(179,136,255,.1);color:var(--purple);border:1px solid rgba(179,136,255,.12)}
+.tb-a{display:flex;gap:4px}
+.tbb{height:30px;padding:0 10px;background:var(--gl);border:1px solid var(--gb);border-radius:var(--rs);
+  color:var(--t3);font-family:'Outfit',sans-serif;font-size:11px;font-weight:500;cursor:pointer;
+  transition:all var(--fast);display:flex;align-items:center;gap:4px}
+.tbb:hover{border-color:var(--accent);color:var(--accent);background:var(--ad)}
+
+/* ══════ PAGES ══════ */
+.pgs{flex:1;overflow:hidden;position:relative}
+.pg{position:absolute;inset:0;overflow-y:auto;padding:22px;
+  opacity:0;pointer-events:none;transition:opacity .35s ease,transform .35s ease;transform:translateX(30px)}
+.pg.on{opacity:1;pointer-events:auto;transform:translateX(0)}
+.pg.out-l{opacity:0;transform:translateX(-30px)}
+.pg.out-r{opacity:0;transform:translateX(30px)}
+.pg::-webkit-scrollbar{width:4px}
+.pg::-webkit-scrollbar-thumb{background:var(--t5);border-radius:4px}
+.pg::-webkit-scrollbar-thumb:hover{background:var(--accent)}
+.pi{max-width:740px;margin:0 auto}
+
+/* ══════ HOME ══════ */
+.hero{display:flex;flex-direction:column;align-items:center;text-align:center;padding-top:5vh;
+  animation:heroIn .7s ease-out}
+@keyframes heroIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.hero-ring{width:92px;height:92px;border-radius:50%;position:relative;margin-bottom:24px;
+  display:flex;align-items:center;justify-content:center;font-size:40px;background:var(--base);
+  border:2px solid rgba(255,107,43,.2)}
+.hero-ring::before{content:'';position:absolute;inset:-6px;border-radius:50%;
+  background:conic-gradient(from 0deg,var(--ags),transparent 25%,transparent 50%,var(--cg) 75%,transparent);
+  animation:rSpin 10s linear infinite;filter:blur(6px)}
+@keyframes rSpin{to{transform:rotate(360deg)}}
+.hero-ring::after{content:'';position:absolute;inset:0;border-radius:50%;
+  box-shadow:0 0 0 0 rgba(255,107,43,.15);animation:rPulse 3s ease-in-out infinite}
+@keyframes rPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,107,43,.15)}50%{box-shadow:0 0 0 18px rgba(255,107,43,0)}}
+.hero h1{font-family:'Fira Code',monospace;font-size:36px;font-weight:800;letter-spacing:6px;
+  background:linear-gradient(135deg,var(--t1) 30%,var(--accent2),var(--accent));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px}
+.hero .desc{font-size:14.5px;color:var(--t3);max-width:400px;line-height:1.65;margin-bottom:34px}
+.hero .desc b{color:var(--t1);font-weight:600}
+.fg{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;max-width:560px;width:100%}
+.fc{padding:18px 14px;background:var(--gl);border:1px solid var(--gb);border-radius:var(--rl);
+  cursor:pointer;transition:all var(--smooth);text-align:left;position:relative;overflow:hidden}
+.fc::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--ad),transparent);
+  opacity:0;transition:opacity var(--smooth)}
+.fc:hover{transform:translateY(-3px);border-color:rgba(255,107,43,.2);
+  box-shadow:0 10px 36px rgba(0,0,0,.4),0 0 24px var(--ad)}
+.fc:hover::before{opacity:1}
+.fc:active{transform:translateY(-1px) scale(.98)}
+.fc-i{font-size:22px;margin-bottom:8px;display:block;position:relative;z-index:1}
+.fc-t{font-size:12.5px;font-weight:700;margin-bottom:2px;position:relative;z-index:1}
+.fc-d{font-size:10.5px;color:var(--t4);line-height:1.5;position:relative;z-index:1}
+.sb-row{display:flex;gap:24px;margin-top:32px;opacity:.55}
+.sb-item{text-align:center}
+.sb-n{font-family:'Fira Code',monospace;font-size:18px;font-weight:700;color:var(--accent)}
+.sb-l{font-size:9px;color:var(--t5);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px}
+
+/* ══════ CHAT PAGES ══════ */
+.cp{display:flex;flex-direction:column;padding:0!important}
+.cm{flex:1;overflow-y:auto;padding:22px}
+.cm::-webkit-scrollbar{width:4px}
+.cm::-webkit-scrollbar-thumb{background:var(--t5);border-radius:4px}
+.ci{max-width:740px;margin:0 auto}
+
+/* Welcome inside chat */
+.mode-welcome{text-align:center;padding:40px 20px;animation:mwIn .5s ease-out}
+@keyframes mwIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.mw-icon{font-size:40px;margin-bottom:14px}
+.mw-title{font-size:20px;font-weight:800;margin-bottom:6px}
+.mw-desc{font-size:13px;color:var(--t3);max-width:380px;margin:0 auto;line-height:1.6}
+
+/* Messages */
+.m{display:flex;gap:11px;margin-bottom:22px;animation:mIn .4s cubic-bezier(.175,.885,.32,1.275)}
+@keyframes mIn{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}
+.m.u{flex-direction:row-reverse}
+.mav{width:30px;height:30px;border-radius:var(--rs);flex-shrink:0;display:flex;
+  align-items:center;justify-content:center;font-size:13px;margin-top:2px}
+.m.a .mav{background:linear-gradient(135deg,var(--accent),var(--red));
+  box-shadow:0 0 10px rgba(255,107,43,.18);position:relative}
+.m.a .mav::after{content:'';position:absolute;inset:0;border-radius:inherit;
+  background:linear-gradient(135deg,rgba(255,255,255,.25),transparent 50%)}
+.m.u .mav{background:linear-gradient(135deg,var(--cyan),var(--purple));font-size:11px;font-weight:700}
+.mb{max-width:88%;min-width:0}
+.mbl{padding:14px 16px;border-radius:var(--rl);font-size:13.5px;line-height:1.72}
+.m.a .mbl{background:var(--raised);border:1px solid var(--gb);border-top-left-radius:4px;color:var(--t2)}
+.m.u .mbl{background:linear-gradient(135deg,rgba(255,107,43,.07),rgba(255,107,43,.03));
+  border:1px solid rgba(255,107,43,.1);border-top-right-radius:4px;color:var(--t1)}
+.mbl strong{color:var(--accent2);font-weight:600}
+.mbl em{color:var(--cyan);font-style:normal;font-weight:500}
+.mbl code{font-family:'Fira Code',monospace;font-size:11.5px;background:rgba(255,255,255,.04);
+  padding:1px 5px;border-radius:3px;border:1px solid var(--gb)}
+.mt{font-size:9.5px;color:var(--t5);margin-top:3px;padding:0 3px}
+.m.u .mt{text-align:right}
+
+/* Typing */
+.td{display:flex;gap:4px;align-items:center;padding:3px 0}
+.td span{width:5px;height:5px;border-radius:50%;background:var(--accent);opacity:.3;animation:db 1.4s ease-in-out infinite}
+.td span:nth-child(2){animation-delay:.15s}
+.td span:nth-child(3){animation-delay:.3s}
+@keyframes db{0%,80%,100%{opacity:.3;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
+
+/* ══════ CARDS ══════ */
+.qc{background:var(--surface);border:1px solid var(--gb);border-radius:var(--rx);
+  padding:20px;margin-top:10px;position:relative;overflow:hidden}
+.qc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--accent),var(--cyan),var(--purple))}
+.qt{display:flex;gap:4px;margin-bottom:12px;flex-wrap:wrap}
+.qs{font-size:13.5px;line-height:1.78;color:var(--t2);margin-bottom:16px}
+.qo{display:flex;align-items:flex-start;gap:10px;padding:11px 13px;border:1px solid var(--gb);
+  border-radius:var(--rm);margin-bottom:6px;cursor:pointer;transition:all var(--fast);
+  font-size:13px;line-height:1.55;color:var(--t2)}
+.qo:hover{border-color:rgba(255,107,43,.25);background:var(--ad);transform:translateX(3px)}
+.qo:active{transform:translateX(3px) scale(.99)}
+.ql{font-family:'Fira Code',monospace;font-weight:700;font-size:10.5px;color:var(--t4);
+  min-width:20px;height:20px;display:flex;align-items:center;justify-content:center;
+  border-radius:5px;background:var(--gl);border:1px solid var(--gb);flex-shrink:0;transition:all var(--fast)}
+.qo:hover .ql{border-color:rgba(255,107,43,.25);color:var(--accent)}
+.qo.ok{border-color:rgba(0,230,118,.35)!important;background:rgba(0,230,118,.05)!important;transform:translateX(3px)}
+.qo.ok .ql{background:rgba(0,230,118,.12);border-color:rgba(0,230,118,.25);color:var(--green)}
+.qo.no{border-color:rgba(255,61,90,.35)!important;background:rgba(255,61,90,.05)!important}
+.qo.no .ql{background:rgba(255,61,90,.12);border-color:rgba(255,61,90,.25);color:var(--red)}
+.qo.dim{opacity:.3;pointer-events:none}
+.qe{margin-top:12px;padding:14px;background:rgba(0,230,118,.03);border:1px solid rgba(0,230,118,.08);
+  border-radius:var(--rm);font-size:12.5px;line-height:1.75;color:var(--t2);display:none}
+.qe.vis{display:block;animation:eIn .45s cubic-bezier(.175,.885,.32,1.275)}
+@keyframes eIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.eh{font-weight:700;color:var(--green);margin-bottom:7px;font-size:13px}
+.pearl{margin-top:10px;padding:10px 12px;background:var(--ad);border:1px solid rgba(255,107,43,.08);
+  border-radius:var(--rs);font-size:12px;line-height:1.65}
+.pearl strong{color:var(--accent)}
+
+/* Notes card */
+.nc{background:var(--surface);border:1px solid var(--gb);border-radius:var(--rx);
+  padding:20px;margin-top:10px;position:relative;overflow:hidden}
+.nc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--purple),var(--cyan))}
+.ns{margin-bottom:14px}.ns:last-of-type{margin-bottom:0}
+.nst{font-size:13px;font-weight:700;color:var(--t1);margin-bottom:5px;display:flex;align-items:center;gap:6px}
+.nn{font-family:'Fira Code',monospace;font-size:9px;font-weight:700;color:var(--accent);
+  background:var(--ad);padding:2px 5px;border-radius:3px}
+.nt{font-size:12.5px;line-height:1.75;color:var(--t3)}
+.nt strong{color:var(--accent2)}
+.nt em{color:var(--cyan);font-style:normal}
+.pb{margin-top:14px;padding:12px;background:linear-gradient(135deg,var(--ad),transparent);
+  border:1px solid rgba(255,107,43,.08);border-radius:var(--rm);font-size:12px;line-height:1.65;color:var(--t2)}
+.pb strong{color:var(--accent)}
+
+/* Quick actions */
+.qag{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:10px}
+.qac{padding:10px;background:var(--gl);border:1px solid var(--gb);border-radius:var(--rm);
+  cursor:pointer;transition:all var(--smooth);display:flex;align-items:center;gap:8px}
+.qac:hover{border-color:rgba(255,107,43,.2);background:var(--ad);transform:translateY(-2px)}
+.qac:active{transform:scale(.98)}
+.qai{font-size:15px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+  background:var(--gl);border-radius:var(--rs);flex-shrink:0}
+.qat{font-size:11.5px;font-weight:600;color:var(--t1)}
+.qad{font-size:9.5px;color:var(--t4);margin-top:1px}
+
+/* ══════ INPUT ══════ */
+.ib{padding:10px 18px 18px;border-top:1px solid var(--gb);background:rgba(8,8,16,.6);
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);flex-shrink:0}
+.iw{max-width:740px;margin:0 auto;position:relative}
+.if{width:100%;padding:12px 48px 12px 14px;background:var(--raised);border:1.5px solid var(--gb);
+  border-radius:var(--rl);color:var(--t1);font-family:'Outfit',sans-serif;font-size:13.5px;
+  resize:none;outline:none;min-height:44px;max-height:120px;line-height:1.5;
+  transition:border-color var(--smooth),box-shadow var(--smooth)}
+.if:focus{border-color:rgba(255,107,43,.35);box-shadow:0 0 0 3px var(--ad),0 0 20px var(--ad)}
+.if::placeholder{color:var(--t5)}
+.sb-btn{position:absolute;right:4px;bottom:4px;width:34px;height:34px;
+  background:linear-gradient(135deg,var(--accent),var(--red));border:none;border-radius:var(--rs);
+  color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all var(--smooth);box-shadow:0 0 12px rgba(255,107,43,.16)}
+.sb-btn:hover{transform:scale(1.06);box-shadow:0 0 20px rgba(255,107,43,.28)}
+.sb-btn:active{transform:scale(.93)}
+.sb-btn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.chs{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap}
+.ch{padding:4px 10px;background:var(--gl);border:1px solid var(--gb);border-radius:var(--rf);
+  font-family:'Outfit',sans-serif;font-size:11px;font-weight:500;color:var(--t3);
+  cursor:pointer;transition:all var(--fast);white-space:nowrap}
+.ch:hover{border-color:rgba(255,107,43,.2);color:var(--accent);background:var(--ad);transform:translateY(-1px)}
+
+/* XP popup */
+.xpp{position:fixed;top:65px;right:20px;padding:8px 14px;background:var(--surface);
+  border:1px solid rgba(255,107,43,.2);border-radius:var(--rm);font-family:'Fira Code',monospace;
+  font-size:12px;font-weight:700;color:var(--accent);z-index:200;pointer-events:none;
+  opacity:0;transform:translateY(-6px) scale(.9);transition:all .4s var(--spring);
+  box-shadow:0 0 20px var(--ags)}
+.xpp.on{opacity:1;transform:translateY(0) scale(1)}
+
+/* ══════ MOBILE ══════ */
+@media(max-width:860px){.sb{display:none}.fg{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:500px){.fg{grid-template-columns:1fr}.hero h1{font-size:28px;letter-spacing:4px}
+  .cm{padding:14px}.qag{grid-template-columns:1fr}.sb-row{gap:14px}}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div class="grain"></div>
+<div class="xpp" id="xpp">+25 XP ⚡</div>
+
+<div class="app">
+<!-- SIDEBAR -->
+<aside class="sidebar sb">
+  <div class="sb-top">
+    <div class="logo-r"><div class="logo-m">⚡</div><div class="logo-t">OCTANE</div></div>
+    <div class="logo-sub">med school co-pilot</div>
+    <button class="new-btn" onclick="goTo('home')"><span style="font-size:14px">＋</span> New Session</button>
+  </div>
+  <div class="sb-lbl">Navigate</div>
+  <div class="nav" id="navL">
+    <div class="ni on" data-p="home" onclick="nav(this)"><div class="ni-i">🏠</div><div class="ni-t">Home</div></div>
+    <div class="ni" data-p="chat" onclick="nav(this)"><div class="ni-i">💬</div><div class="ni-t">General Chat</div></div>
+    <div class="ni" data-p="boards" onclick="nav(this)"><div class="ni-i">🎯</div><div class="ni-t">Board Practice</div></div>
+    <div class="ni" data-p="research" onclick="nav(this)"><div class="ni-i">🔬</div><div class="ni-t">Research</div></div>
+    <div class="ni" data-p="notes" onclick="nav(this)"><div class="ni-i">📝</div><div class="ni-t">Summary Notes</div></div>
+    <div class="ni" data-p="lectures" onclick="nav(this)"><div class="ni-i">🎓</div><div class="ni-t">Lectures</div></div>
+    <div class="ni" data-p="papers" onclick="nav(this)"><div class="ni-i">📄</div><div class="ni-t">Paper Writer</div></div>
+  </div>
+  <div class="sb-lbl">Recent</div>
+  <div class="hist">
+    <div class="hi"><div class="hi-t">Cardiac Physiology Review</div><div class="hi-m">2 hours ago</div></div>
+    <div class="hi"><div class="hi-t">Step 1 — Renal Pathology</div><div class="hi-m">Yesterday</div></div>
+    <div class="hi"><div class="hi-t">Pharmacology: Beta Blockers</div><div class="hi-m">2 days ago</div></div>
+    <div class="hi"><div class="hi-t">Biochem Lecture Notes</div><div class="hi-m">3 days ago</div></div>
+    <div class="hi"><div class="hi-t">Neuro: Cranial Nerves</div><div class="hi-m">4 days ago</div></div>
+  </div>
+  <div class="sb-bot">
+    <div class="xp-r"><span class="xp-l">LVL 12</span><span class="xp-v">1,580 / 2,000</span></div>
+    <div class="xp-trk"><div class="xp-f" id="xpF"></div></div>
+    <div class="ur">
+      <div class="uav">MS</div>
+      <div><div class="un">Med Student <span class="strk">🔥 14</span></div><div class="ut">⚡ Octane Pro</div></div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="mn">
+  <div class="tb">
+    <div class="tb-l"><div class="tb-m"><span id="tE">🏠</span><span id="tN">Home</span></div><span class="bdg ba" id="tB">DASHBOARD</span></div>
+    <div class="tb-a">
+      <button class="tbb" onclick="goBack()">← Back</button>
+      <button class="tbb" onclick="goForward()">Forward →</button>
+      <button class="tbb">⚙️</button>
+    </div>
+  </div>
+
+  <div class="pgs" id="pgs">
+    <!-- HOME -->
+    <div class="pg on" id="pg-home">
+      <div class="pi">
+        <div class="hero">
+          <div class="hero-ring">⚡</div>
+          <h1>OCTANE</h1>
+          <p class="desc">Your <b>high-velocity AI co-pilot</b> for med school. Research, practice, write, and study — without burning out.</p>
+          <div class="fg">
+            <div class="fc" onclick="goTo('chat')"><span class="fc-i">💬</span><div class="fc-t">General Chat</div><div class="fc-d">Ask anything medical</div></div>
+            <div class="fc" onclick="goTo('boards')"><span class="fc-i">🎯</span><div class="fc-t">Board Practice</div><div class="fc-d">USMLE-style questions</div></div>
+            <div class="fc" onclick="goTo('research')"><span class="fc-i">🔬</span><div class="fc-t">Research</div><div class="fc-d">Deep dive any topic</div></div>
+            <div class="fc" onclick="goTo('notes')"><span class="fc-i">📝</span><div class="fc-t">Summary Notes</div><div class="fc-d">High-yield condensed</div></div>
+            <div class="fc" onclick="goTo('lectures')"><span class="fc-i">🎓</span><div class="fc-t">Lectures</div><div class="fc-d">Break down lectures</div></div>
+            <div class="fc" onclick="goTo('papers')"><span class="fc-i">📄</span><div class="fc-t">Paper Writer</div><div class="fc-d">Scientific writing help</div></div>
+          </div>
+          <div class="sb-row">
+            <div class="sb-item"><div class="sb-n">847</div><div class="sb-l">Questions</div></div>
+            <div class="sb-item"><div class="sb-n">73%</div><div class="sb-l">Accuracy</div></div>
+            <div class="sb-item"><div class="sb-n">14🔥</div><div class="sb-l">Streak</div></div>
+            <div class="sb-item"><div class="sb-n">42h</div><div class="sb-l">Study Time</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- CHAT PAGES -->
+    <div class="pg cp" id="pg-chat"><div class="cm" id="sc-chat"><div class="ci" id="ci-chat"></div></div></div>
+    <div class="pg cp" id="pg-boards"><div class="cm" id="sc-boards"><div class="ci" id="ci-boards"></div></div></div>
+    <div class="pg cp" id="pg-research"><div class="cm" id="sc-research"><div class="ci" id="ci-research"></div></div></div>
+    <div class="pg cp" id="pg-notes"><div class="cm" id="sc-notes"><div class="ci" id="ci-notes"></div></div></div>
+    <div class="pg cp" id="pg-lectures"><div class="cm" id="sc-lectures"><div class="ci" id="ci-lectures"></div></div></div>
+    <div class="pg cp" id="pg-papers"><div class="cm" id="sc-papers"><div class="ci" id="ci-papers"></div></div></div>
+  </div>
+
+  <div class="ib" id="iBar" style="display:none">
+    <div class="iw">
+      <textarea class="if" id="iF" placeholder="Ask anything..." rows="1" onkeydown="onK(event)"></textarea>
+      <button class="sb-btn" onclick="send()"><svg viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg></button>
+    </div>
+    <div class="chs" id="chs"></div>
+  </div>
+</main>
+</div>
+
+<script>
+// ════════════════════════════════
+// CANVAS — Medical Background
+// ════════════════════════════════
+const cv=document.getElementById('bg'),cx=cv.getContext('2d');
+let W,H,ha=0,pts=[];
+function rsz(){W=cv.width=innerWidth;H=cv.height=innerHeight}
+rsz();addEventListener('resize',rsz);
+
+class P{constructor(){this.r()}
+r(){this.x=Math.random()*W;this.y=Math.random()*H;this.sz=Math.random()*2.5+.8;
+  this.vx=(Math.random()-.5)*.25;this.vy=(Math.random()-.5)*.25;
+  this.a=Math.random()*.12+.02;this.ph=Math.random()*6.28;
+  this.tp=Math.random()>.7?1:0;this.cl=Math.random()>.5?'255,107,43':'0,212,255'}
+u(){this.x+=this.vx;this.y+=this.vy;this.ph+=.015;
+  if(this.x<-20||this.x>W+20||this.y<-20||this.y>H+20)this.r()}
+d(){const a=this.a*(.7+.3*Math.sin(this.ph));cx.save();
+  if(this.tp){cx.beginPath();cx.arc(this.x,this.y,this.sz*2.2,0,6.28);
+    cx.strokeStyle=`rgba(${this.cl},${a})`;cx.lineWidth=.4;cx.stroke();
+    cx.beginPath();cx.arc(this.x,this.y,this.sz*.7,0,6.28);
+    cx.fillStyle=`rgba(${this.cl},${a*.5})`;cx.fill()
+  }else{cx.beginPath();cx.arc(this.x,this.y,this.sz,0,6.28);
+    cx.fillStyle=`rgba(${this.cl},${a})`;cx.fill()}cx.restore()}}
+for(let i=0;i<55;i++)pts.push(new P);
+
+function dna(){
+  const cx2=W*.87,st=50,amp=28,sp=H/st;cx.lineWidth=1;ha+=.007;
+  for(let i=0;i<st;i++){
+    const y=i*sp,ph=ha+i*.2,x1=cx2+Math.sin(ph)*amp,x2=cx2+Math.sin(ph+Math.PI)*amp;
+    const d1=(Math.cos(ph)+1)/2,d2=(Math.cos(ph+Math.PI)+1)/2;
+    if(i%3===0){cx.beginPath();cx.moveTo(x1,y);cx.lineTo(x2,y);
+      cx.strokeStyle=`rgba(255,107,43,${.035+d1*.025})`;cx.lineWidth=.7;cx.stroke();
+      const mx=(x1+x2)/2;cx.beginPath();cx.arc(mx-4,y,1.2,0,6.28);
+      cx.fillStyle=`rgba(0,212,255,${.06+d1*.04})`;cx.fill();
+      cx.beginPath();cx.arc(mx+4,y,1.2,0,6.28);
+      cx.fillStyle=`rgba(179,136,255,${.06+d2*.04})`;cx.fill()}
+    if(i>0){const py=(i-1)*sp,px1=cx2+Math.sin(ha+(i-1)*.2)*amp;
+      cx.beginPath();cx.moveTo(px1,py);cx.lineTo(x1,y);
+      cx.strokeStyle=`rgba(255,107,43,${.05+d1*.05})`;cx.lineWidth=1;cx.stroke();
+      const px2=cx2+Math.sin(ha+(i-1)*.2+Math.PI)*amp;
+      cx.beginPath();cx.moveTo(px2,py);cx.lineTo(x2,y);
+      cx.strokeStyle=`rgba(0,212,255,${.04+d2*.04})`;cx.lineWidth=1;cx.stroke()}}}
+
+function hex(){
+  const sz=38,cols=Math.ceil(W/(sz*1.5))+1,rows=Math.ceil(H/(sz*1.732))+1;
+  cx.strokeStyle='rgba(255,255,255,.01)';cx.lineWidth=.4;
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+    const x=c*sz*1.5,y=r*sz*1.732+(c%2?sz*.866:0);
+    cx.beginPath();for(let i=0;i<6;i++){const a=Math.PI/3*i-Math.PI/6;
+      const px=x+(sz/2)*Math.cos(a),py=y+(sz/2)*Math.sin(a);
+      i===0?cx.moveTo(px,py):cx.lineTo(px,py)}cx.closePath();cx.stroke()}}
+
+const orbs=[{x:.1,y:.15,r:180,c:'255,107,43',a:.05,s:.0003},
+  {x:.85,y:.8,r:140,c:'0,212,255',a:.035,s:.0004},
+  {x:.5,y:.5,r:120,c:'179,136,255',a:.025,s:.0002}];
+function dOrbs(t){orbs.forEach(o=>{
+  const x=o.x*W+Math.sin(t*o.s)*35,y=o.y*H+Math.cos(t*o.s*1.3)*25;
+  const g=cx.createRadialGradient(x,y,0,x,y,o.r);
+  g.addColorStop(0,`rgba(${o.c},${o.a})`);g.addColorStop(1,'transparent');
+  cx.fillStyle=g;cx.fillRect(x-o.r,y-o.r,o.r*2,o.r*2)})}
+
+let fr=0;
+function anim(){fr++;cx.clearRect(0,0,W,H);dOrbs(fr);hex();dna();
+  pts.forEach(p=>{p.u();p.d()});requestAnimationFrame(anim)}
+anim();
+
+// ════════════════════════════════
+// NAVIGATION (back + forward)
+// ════════════════════════════════
+let cur='home',hist=['home'],hIdx=0;
+const pgCfg={
+  home:{e:'🏠',n:'Home',b:'DASHBOARD',bc:'ba'},
+  chat:{e:'💬',n:'General Chat',b:'READY',bc:'ba'},
+  boards:{e:'🎯',n:'Board Practice',b:'USMLE',bc:'ba'},
+  research:{e:'🔬',n:'Research',b:'DEEP DIVE',bc:'bc'},
+  notes:{e:'📝',n:'Summary Notes',b:'HIGH YIELD',bc:'bg'},
+  lectures:{e:'🎓',n:'Lectures',b:'LEARN',bc:'bp'},
+  papers:{e:'📄',n:'Paper Writer',b:'ACADEMIC',bc:'ba'}
+};
+const mChips={
+  chat:['Explain the cardiac cycle','Type 1 vs Type 2 diabetes','How do ACE inhibitors work?','What causes heart failure?'],
+  boards:['Step 1 cardiology question','Renal pathology practice','Pharmacology quiz','Neuro board question'],
+  research:['Latest immunotherapy advances','CAR-T cell therapy updates','mRNA vaccine research','CRISPR in medicine'],
+  notes:['Summarize renal physiology','Cardiac cycle high-yield','Pharmacology: antihypertensives','Endocrine overview'],
+  lectures:['Explain the RAAS pathway','Coagulation cascade breakdown','Immunoglobulin classes','Action potential steps'],
+  papers:['Structure a case report','Literature review outline','Research methodology help','Abstract writing guide']
+};
+const mWel={
+  chat:{t:'General Chat',d:'Ask me anything about medicine. I\'ll explain clearly with high-yield takeaways.',i:'💬'},
+  boards:{t:'Board Practice',d:'USMLE Step 1 & 2 style questions with detailed explanations. Let\'s boost your score.',i:'🎯'},
+  research:{t:'Research Mode',d:'Give me a topic — I\'ll find the latest evidence, key trials, and clinical implications.',i:'🔬'},
+  notes:{t:'Summary Notes',d:'Tell me a topic. I\'ll create high-yield, board-focused notes you can study from.',i:'📝'},
+  lectures:{t:'Lecture Explainer',d:'Describe a lecture topic. I\'ll break it down step-by-step like your best professor.',i:'🎓'},
+  papers:{t:'Paper Writer',d:'I\'ll help you structure and write scientific papers, case reports, and lit reviews.',i:'📄'}
+};
+
+function goTo(p,fromHist){
+  if(p===cur)return;
+  const old=document.getElementById('pg-'+cur),nw=document.getElementById('pg-'+p);
+  if(!old||!nw)return;
+  // Determine direction
+  const goingForward=!fromHist||fromHist==='fwd';
+  old.classList.remove('on');
+  old.classList.add(goingForward?'out-l':'out-r');
+  setTimeout(()=>{old.classList.remove('out-l','out-r')},400);
+  nw.classList.add('on');
+  // Update nav
+  document.querySelectorAll('.ni').forEach(n=>n.classList.toggle('on',n.dataset.p===p));
+  // Topbar
+  const c=pgCfg[p];
+  document.getElementById('tE').textContent=c.e;
+  document.getElementById('tN').textContent=c.n;
+  const bd=document.getElementById('tB');bd.textContent=c.b;bd.className='bdg '+c.bc;
+  // Input
+  document.getElementById('iBar').style.display=p==='home'?'none':'';
+  if(p!=='home'){
+    const chips=mChips[p]||[];
+    document.getElementById('chs').innerHTML=chips.map(c=>`<span class="ch" onclick="useChip(this)">${c}</span>`).join('');
+    const ci=document.getElementById('ci-'+p);
+    if(ci&&ci.children.length===0){const w=mWel[p];
+      addTo(p,`<div class="mode-welcome"><div class="mw-icon">${w.i}</div><div class="mw-title">${w.t}</div><div class="mw-desc">${w.d}</div></div>`,'a')}
+    document.getElementById('iF').placeholder=ph(p);
+    setTimeout(()=>document.getElementById('iF').focus(),100);
+  }
+  // History tracking
+  if(!fromHist){
+    hist=hist.slice(0,hIdx+1);hist.push(p);hIdx=hist.length-1;
+  }
+  cur=p;
+}
+function ph(p){return{chat:'Ask anything...',boards:'Request a practice question...',research:'What topic to research?',
+  notes:'What should I summarize?',lectures:'What lecture topic?',papers:'What are you writing?'}[p]||'Ask anything...'}
+function nav(el){goTo(el.dataset.p)}
+function goBack(){if(hIdx>0){hIdx--;goTo(hist[hIdx],'back')}}
+function goForward(){if(hIdx<hist.length-1){hIdx++;goTo(hist[hIdx],'fwd')}}
+
+// Keyboard shortcut for back/forward
+document.addEventListener('keydown',e=>{
+  if(e.altKey&&e.key==='ArrowLeft'){e.preventDefault();goBack()}
+  if(e.altKey&&e.key==='ArrowRight'){e.preventDefault();goForward()}
+});
+
+// ════════════════════════════════
+// MESSAGING
+// ════════════════════════════════
+let xp=1580,mxp=2000;
+function gt(){return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}
+function addTo(p,h,t){
+  const ci=document.getElementById('ci-'+p);if(!ci)return;
+  const d=document.createElement('div');d.className='m '+t;
+  const av=t==='a'?'⚡':'👤';
+  d.innerHTML=`<div class="mav">${av}</div><div class="mb"><div class="mbl">${h}</div><div class="mt">${gt()}</div></div>`;
+  ci.appendChild(d);const s=document.getElementById('sc-'+p);
+  if(s)requestAnimationFrame(()=>s.scrollTop=s.scrollHeight);return d}
+function typIn(p){
+  const ci=document.getElementById('ci-'+p);if(!ci)return;
+  const d=document.createElement('div');d.className='m a';d.id='typ-'+p;
+  d.innerHTML=`<div class="mav">⚡</div><div class="mb"><div class="mbl"><div class="td"><span></span><span></span><span></span></div></div></div>`;
+  ci.appendChild(d);const s=document.getElementById('sc-'+p);
+  if(s)requestAnimationFrame(()=>s.scrollTop=s.scrollHeight)}
+function rmTyp(p){const t=document.getElementById('typ-'+p);if(t)t.remove()}
+function giveXP(n){xp=Math.min(xp+n,mxp);document.getElementById('xpF').style.width=(xp/mxp*100)+'%';
+  const pp=document.getElementById('xpp');pp.textContent=`+${n} XP ⚡`;pp.classList.add('on');
+  setTimeout(()=>pp.classList.remove('on'),1500)}
+
+const iF=document.getElementById('iF');
+iF.addEventListener('input',()=>{iF.style.height='auto';iF.style.height=Math.min(iF.scrollHeight,120)+'px'});
+function onK(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}}
+function useChip(el){iF.value=el.textContent;send()}
+
+function send(){
+  const v=iF.value.trim();if(!v||cur==='home')return;
+  iF.value='';iF.style.height='auto';document.getElementById('chs').innerHTML='';
+  addTo(cur,v,'u');typIn(cur);
+  setTimeout(()=>{rmTyp(cur);respond(v,cur);giveXP(10+Math.floor(Math.random()*25))},800+Math.random()*500)}
+
+// ════════════════════════════════
+// AI RESPONSES
+// ════════════════════════════════
+function respond(q,p){
+  const r={boards:()=>boardR(),research:()=>resR(q),notes:()=>notesR(q),
+    lectures:()=>lectR(q),papers:()=>paperR(q),chat:()=>chatR(q)};
+  addTo(p,(r[p]||r.chat)(),'a')}
+
+function boardR(){
+  const qs=[
+    {tags:['Step 1','Cardiology'],
+     stem:`A 58-year-old man with hypertension and hyperlipidemia presents to the ED with 45 minutes of crushing substernal chest pain radiating to his left arm. He is diaphoretic. <strong>Vitals:</strong> BP 78/50, HR 105, RR 22, SpO₂ 94%. <strong>ECG:</strong> 3mm ST elevation in II, III, aVF with reciprocal depression in I, aVL. Troponin I: 4.2 ng/mL (nl &lt;0.04). JVP elevated to 12 cm H₂O. <em>Lung fields are clear bilaterally.</em><br><br>Which of the following is the most likely diagnosis?`,
+     opts:[{l:'A',t:'Left ventricular free wall rupture',c:0},{l:'B',t:'Right ventricular infarction',c:1},
+       {l:'C',t:'Cardiac tamponade from Dressler syndrome',c:0},{l:'D',t:'Acute mitral regurgitation from papillary muscle rupture',c:0},
+       {l:'E',t:'Tension pneumothorax',c:0}],
+     expl:`<div class="eh">✅ Correct: B — Right Ventricular Infarction</div>
+The classic triad is <strong>hypotension + elevated JVP + clear lungs</strong> in the setting of an inferior STEMI (ST↑ in II, III, aVF → RCA territory).<br><br>
+<strong>Pathophysiology:</strong> The RCA supplies the RV in ~85% of patients. RV failure → ↓ blood flow to lungs → ↓ LV preload → systemic hypotension. Venous blood backs up → JVP elevation. Since the LV isn't volume-overloaded, lungs remain clear.<br><br>
+<strong>Why not the others:</strong><br>
+<strong>A)</strong> LV free wall rupture → acute hemopericardium → PEA arrest within minutes<br>
+<strong>C)</strong> Dressler syndrome → occurs weeks post-MI with pleuritic pain, friction rub, fever<br>
+<strong>D)</strong> Papillary muscle rupture → acute MR → flash pulmonary edema (<em>lungs would NOT be clear</em>)<br>
+<strong>E)</strong> Tension pneumothorax → absent breath sounds, tracheal deviation, hyperresonance<br>
+<div class="pearl"><strong>⚡ High-Yield Pearl:</strong> Always get <strong>right-sided leads (V4R)</strong> with inferior STEMI + hypotension. RV infarct patients are <strong>preload-dependent</strong> — give IV fluids aggressively. <strong>Avoid</strong> nitrates, diuretics, and morphine (all reduce preload).</div>`},
+    {tags:['Step 1','Pulmonology'],
+     stem:`A 32-year-old woman presents with progressive dyspnea over 6 months. She has no smoking history. Physical exam reveals <em>hyperresonant percussion</em> at the lung bases bilaterally with decreased breath sounds. CXR shows hyperinflated lungs with basilar-predominant emphysema. Liver function tests show mildly elevated AST and ALT.<br><br>Which of the following is the most likely underlying cause?`,
+     opts:[{l:'A',t:'Chronic cigarette smoking',c:0},{l:'B',t:'Alpha-1 antitrypsin deficiency',c:1},
+       {l:'C',t:'Hypersensitivity pneumonitis',c:0},{l:'D',t:'Cystic fibrosis',c:0},{l:'E',t:'Sarcoidosis',c:0}],
+     expl:`<div class="eh">✅ Correct: B — Alpha-1 Antitrypsin Deficiency</div>
+The key clues are: <strong>young patient + non-smoker + basilar emphysema + liver abnormalities</strong>.<br><br>
+<strong>Pathophysiology:</strong> Alpha-1 antitrypsin (AAT) is a protease inhibitor made in the liver that protects alveoli from neutrophil elastase. In AAT deficiency (PiZZ genotype), uninhibited elastase destroys alveolar walls → emphysema. The misfolded Z-protein accumulates in hepatocytes → liver damage (cirrhosis, hepatocellular carcinoma).<br><br>
+<strong>Classic pattern:</strong> Emphysema in smokers is <em>apical</em>-predominant. In AAT deficiency, it is <em>basilar</em>-predominant — this is a high-yield board distinction.<br><br>
+<strong>Why not the others:</strong><br>
+<strong>A)</strong> No smoking history, and smoking causes upper-lobe emphysema<br>
+<strong>C)</strong> HP → ground-glass opacities, not emphysema with hyperinflation<br>
+<strong>D)</strong> CF → bronchiectasis pattern, not pure emphysema; also usually diagnosed in childhood<br>
+<strong>E)</strong> Sarcoidosis → bilateral hilar lymphadenopathy, restrictive pattern<br>
+<div class="pearl"><strong>⚡ High-Yield Pearl:</strong> AAT deficiency is autosomal <strong>codominant</strong>. PiMM = normal, PiMZ = carrier (reduced levels), PiZZ = disease. PAS-positive globules in hepatocytes on liver biopsy. Treatment: IV AAT augmentation therapy + smoking cessation.</div>`}
+  ];
+  const q=qs[Math.floor(Math.random()*qs.length)];
+  const tags=q.tags.map(t=>`<span class="bdg ba">${t}</span>`).join('');
+  const opts=q.opts.map(o=>`<div class="qo" data-c="${o.c}" onclick="pick(this)"><span class="ql">${o.l}</span><span>${o.t}</span></div>`).join('');
+  return `Here's your question — think through it carefully 🎯
+<div class="qc"><div class="qt">${tags}</div><div class="qs">${q.stem}</div>${opts}<div class="qe" id="qe${Date.now()}">${q.expl}</div></div>`;
+}
+
+function pick(el){
+  const card=el.closest('.qc'),opts=card.querySelectorAll('.qo'),isC=el.dataset.c==='1';
+  opts.forEach(o=>{
+    if(o===el)o.classList.add(isC?'ok':'no');
+    else if(o.dataset.c==='1')o.classList.add('ok');
+    else o.classList.add('dim');
+    o.style.pointerEvents='none'});
+  const ex=card.querySelector('.qe');
+  if(ex)setTimeout(()=>{ex.classList.add('vis');
+    const s=card.closest('.cm');if(s)requestAnimationFrame(()=>s.scrollTop=s.scrollHeight)},250);
+  giveXP(isC?50:10);
+}
+
+function notesR(q){
+  return `Here are your high-yield notes 📝
+<div class="nc"><div class="qt"><span class="bdg bg">High Yield</span><span class="bdg bc">Renal Physiology</span></div>
+<div class="ns"><div class="nst"><span class="nn">01</span> Glomerular Filtration</div>
+<div class="nt">GFR ≈ <strong>120 mL/min</strong> — driven by Starling forces. Net filtration = hydrostatic pressure (favors) minus oncotic + Bowman's pressure (oppose). Autoregulated <strong>MAP 80–180</strong> via <em>myogenic reflex</em> + <em>tubuloglomerular feedback</em> (adenosine at macula densa constricts afferent arteriole).</div></div>
+<div class="ns"><div class="nst"><span class="nn">02</span> Tubular Reabsorption</div>
+<div class="nt"><strong>PCT:</strong> 65% Na⁺/H₂O reabsorbed. ALL glucose + amino acids. Key transporter: <strong>SGLT2</strong> (gliflozin target). Carbonic anhydrase here reclaims HCO₃⁻.<br><strong>Loop of Henle:</strong> Thin descending = H₂O permeable. Thick ascending = <em>NKCC2 (Na⁺/K⁺/2Cl⁻)</em> → <strong>furosemide blocks this</strong>. Impermeable to H₂O → dilutes tubular fluid.</div></div>
+<div class="ns"><div class="nst"><span class="nn">03</span> Countercurrent System</div>
+<div class="nt"><strong>Multiplier</strong> (Loop) creates medullary gradient (300→1200 mOsm/kg). <strong>Exchanger</strong> (vasa recta) maintains it via passive exchange. ADH → <em>V2 receptors</em> → cAMP → <em>aquaporin-2</em> insertion in collecting duct → concentrated urine.</div></div>
+<div class="ns"><div class="nst"><span class="nn">04</span> RAAS</div>
+<div class="nt">↓ BP / ↓ Na⁺ at macula densa / β1 stimulation → <strong>renin</strong> (JG cells) → angiotensinogen → Ang I → <em>ACE (lungs)</em> → <strong>Ang II</strong> → aldosterone (zona glomerulosa) → ENaC insertion → Na⁺ retention + K⁺ secretion at principal cells of CD. Ang II also constricts <em>efferent</em> arteriole → maintains GFR.</div></div>
+<div class="pb"><strong>⚡ Board Pearls:</strong> Anion gap = Na⁺ − (Cl⁻ + HCO₃⁻), normal 8–12. <strong>MUDPILES</strong> for ↑AG acidosis. RTA: Type 1 = distal (can't secrete H⁺, urine pH >5.5), Type 2 = proximal (can't reabsorb HCO₃⁻), Type 4 = hypoaldo (↑K⁺, ↓NH₄⁺).</div></div>
+<div class="qag">
+<div class="qac" onclick="useChip({textContent:'Quiz me on renal physiology'})"><div class="qai">🎯</div><div><div class="qat">Quiz Me</div><div class="qad">Board questions</div></div></div>
+<div class="qac" onclick="useChip({textContent:'Explain acid-base disorders in detail'})"><div class="qai">🧠</div><div><div class="qat">Go Deeper</div><div class="qad">Acid-base disorders</div></div></div>
+</div>`;
+}
+
+function resR(q){
+  return `Here's what I found 🔬
+<div class="nc"><div class="qt"><span class="bdg bc">Research</span><span class="bdg ba">Immunotherapy</span></div>
+<div class="ns"><div class="nst"><span class="nn">01</span> Checkpoint Inhibitors — Current Standard</div>
+<div class="nt"><strong>Nivolumab + Ipilimumab</strong> (anti-PD-1 + anti-CTLA-4) remains first-line for advanced melanoma. CheckMate-067: 5-year OS ~<strong>52%</strong> for combo vs 44% nivo alone vs 26% ipi alone. <strong>Relatlimab</strong> (anti-LAG-3) + nivolumab (RELATIVITY-047) — first new checkpoint class since 2011. Median PFS 10.1 vs 4.6 months.</div></div>
+<div class="ns"><div class="nst"><span class="nn">02</span> TIL Therapy — FDA Approved 2024</div>
+<div class="nt"><strong>Lifileucel (Amtagvi™)</strong> — first FDA-approved TIL therapy for anti-PD-1 refractory unresectable/metastatic melanoma. Autologous tumor-infiltrating lymphocytes expanded ex vivo (3-5 weeks) then reinfused after lymphodepletion. C-144-01 trial: ORR <strong>31.4%</strong>, with 3 CRs durable >2 years. Requires IL-2 support post-infusion.</div></div>
+<div class="ns"><div class="nst"><span class="nn">03</span> Personalized mRNA Vaccines</div>
+<div class="nt">Moderna's <strong>mRNA-4157/V940</strong> + pembrolizumab: KEYNOTE-942 Phase 2b showed <strong>44% reduction</strong> in recurrence/death vs pembro alone in resected stage III/IV melanoma at 3-year follow-up. Vaccine encodes up to 34 patient-specific neoantigens identified by tumor WES. Phase 3 ongoing — could fundamentally change adjuvant melanoma treatment.</div></div>
+<div class="pb"><strong>⚡ Key Takeaway:</strong> The field is converging on <strong>combination + personalization</strong>. The next wave combines checkpoint inhibitors with personalized cancer vaccines, adoptive cell therapy, and bispecific antibodies — all tailored to individual tumor genomics.</div></div>
+<div class="qag">
+<div class="qac" onclick="useChip({textContent:'Compare CheckMate-067 vs RELATIVITY-047 trial data'})"><div class="qai">📊</div><div><div class="qat">Compare Trials</div><div class="qad">Head-to-head data</div></div></div>
+<div class="qac" onclick="useChip({textContent:'Help me write a literature review on melanoma immunotherapy'})"><div class="qai">📄</div><div><div class="qat">Write Review</div><div class="qad">Start a lit review</div></div></div>
+</div>`;
+}
+
+function lectR(q){
+  const ql=q.toLowerCase();
+  if(ql.includes('raas')||ql.includes('renin')||ql.includes('angiotensin')){
+    return `Let me walk you through this like a lecture 🎓<br><br>
+<strong style="font-size:15px">The Renin-Angiotensin-Aldosterone System (RAAS)</strong><br><br>
+Think of RAAS as the body's <em>emergency blood pressure rescue system</em>. It activates when the kidneys detect trouble.<br><br>
+<strong>Step 1 — The Trigger:</strong><br>
+Three things activate renin release from <strong>juxtaglomerular (JG) cells</strong>:<br>
+→ ↓ Renal perfusion pressure (sensed by baroreceptors in afferent arteriole)<br>
+→ ↓ NaCl delivery to <em>macula densa</em> (via tubuloglomerular feedback)<br>
+→ Sympathetic stimulation (β1 receptors on JG cells)<br><br>
+<strong>Step 2 — The Cascade:</strong><br>
+Renin cleaves <em>angiotensinogen</em> (made in liver, always circulating) → <strong>Angiotensin I</strong> (inactive)<br>
+→ ACE (in pulmonary endothelium) converts it → <strong>Angiotensin II</strong> (the powerhouse)<br><br>
+<strong>Step 3 — Ang II Does EVERYTHING:</strong><br>
+→ <strong>Vasoconstriction</strong> (↑ TPR → ↑ BP) — especially <em>efferent arteriole</em> → maintains GFR<br>
+→ <strong>Aldosterone release</strong> from zona glomerulosa → Na⁺ reabsorption + K⁺ secretion at collecting duct<br>
+→ <strong>ADH release</strong> from posterior pituitary → H₂O reabsorption<br>
+→ <strong>Proximal tubule</strong> Na⁺/HCO₃⁻ reabsorption (direct effect)<br>
+→ <strong>Thirst stimulation</strong> (hypothalamus)<br>
+→ <strong>Cardiac/vascular remodeling</strong> (long-term → pathologic in heart failure)<br><br>
+<div class="pearl"><strong>⚡ The Pharmacology Connections:</strong><br>
+<strong>ACE inhibitors</strong> (lisinopril) → block Ang I→II conversion + ↑bradykinin (→cough, angioedema)<br>
+<strong>ARBs</strong> (losartan) → block AT1 receptor. No bradykinin effect → no cough<br>
+<strong>Aldosterone antagonists</strong> (spironolactone) → block MR receptor → K⁺ sparing<br>
+<strong>Direct renin inhibitors</strong> (aliskiren) → block the very first step<br>
+All are <strong>contraindicated in pregnancy</strong> (renal agenesis) and require <strong>K⁺ + Cr monitoring</strong></div>
+<div class="qag">
+<div class="qac" onclick="useChip({textContent:'Give me board questions on RAAS pharmacology'})"><div class="qai">🎯</div><div><div class="qat">Quiz Me</div><div class="qad">RAAS board Qs</div></div></div>
+<div class="qac" onclick="useChip({textContent:'Summarize all antihypertensive drug classes'})"><div class="qai">📝</div><div><div class="qat">All HTN Drugs</div><div class="qad">Complete overview</div></div></div>
+</div>`;
+  }
+  return `Great topic! Let me break it down lecture-style 🎓<br><br>
+<strong>${q}</strong> — here's how I'd teach this:<br><br>
+This is a fundamental concept that connects to multiple organ systems. Let me build it from the ground up so it sticks.<br><br>
+<div class="qag">
+<div class="qac" onclick="useChip({textContent:'Explain ${q.replace(/'/g,"\\'")} step by step'})"><div class="qai">📖</div><div><div class="qat">Full Breakdown</div><div class="qad">Step-by-step</div></div></div>
+<div class="qac" onclick="useChip({textContent:'Quiz me on ${q.replace(/'/g,"\\'")}' })"><div class="qai">🎯</div><div><div class="qat">Quiz Me</div><div class="qad">Test knowledge</div></div></div>
+</div>`;
+}
+
+function paperR(q){
+  return `Let's structure this 📄
+<div class="nc"><div class="qt"><span class="bdg ba">Paper</span><span class="bdg bc">CARE Guidelines</span></div>
+<div class="ns"><div class="nst"><span class="nn">01</span> Title</div>
+<div class="nt">Format: <strong>"[Rare finding] as the presenting feature of [condition]: A case report"</strong><br>Be specific about what makes your case unique. Avoid vague titles.</div></div>
+<div class="ns"><div class="nst"><span class="nn">02</span> Abstract (Structured, ~250 words)</div>
+<div class="nt"><strong>Background</strong> → 1-2 sentences on why this matters.<br><strong>Case Presentation</strong> → Key demographics, presentation, findings, treatment, outcome.<br><strong>Conclusions</strong> → The take-home clinical lesson in 1 sentence.</div></div>
+<div class="ns"><div class="nst"><span class="nn">03</span> Introduction</div>
+<div class="nt">~2 paragraphs. Introduce the condition + typical presentations. State what's unusual. End with: <em>"We present a case of..."</em></div></div>
+<div class="ns"><div class="nst"><span class="nn">04</span> Case Presentation</div>
+<div class="nt">Demographics → CC → HPI → PE → Labs (<strong>ANA, dsDNA, complement, CBC, CMP, UA</strong>) → Imaging/biopsy → Treatment course → Outcome. Include a <strong>CARE-compliant timeline table</strong>.</div></div>
+<div class="ns"><div class="nst"><span class="nn">05</span> Discussion (4-5 paragraphs)</div>
+<div class="nt">Compare with published cases (PubMed search). Discuss pathophysiology of the unusual presentation. Address diagnostic challenges and management implications. Acknowledge limitations.</div></div>
+<div class="pb"><strong>💡 Pro tip:</strong> Use the <strong>CARE checklist</strong> — most journals require it for case reports. Register your case on <em>clinicaltrials.gov</em> if prospective. Target journals: BMJ Case Reports, JMCR, Cureus (faster review).</div></div>
+Tell me about your specific case and I'll start drafting each section!`;
+}
+
+function chatR(q){
+  const ql=q.toLowerCase();
+  if(ql.includes('cardiac')||ql.includes('heart')||ql.includes('cycle')){
+    return `Great question 🫀 Let me break this down.<br><br>
+The cardiac cycle = one complete heartbeat: <strong>systole</strong> (contraction) → <strong>diastole</strong> (relaxation).<br><br>
+<strong>1. Atrial systole</strong> — P wave fires → atria contract → "atrial kick" adds ~20% to ventricular filling. The <em>a wave</em> on JVP. Without this (as in AFib), you lose that 20% → especially matters in patients with stiff ventricles.<br><br>
+<strong>2. Isovolumetric contraction</strong> — QRS fires → ventricles begin contracting. ALL valves are CLOSED. Pressure skyrockets. <strong>S1</strong> = mitral + tricuspid closure. Loudest at apex.<br><br>
+<strong>3. Ventricular ejection</strong> — Ventricular pressure > aortic/pulmonary pressure → semilunar valves open → rapid ejection then reduced ejection. <em>Ejection fraction</em> = (EDV−ESV)/EDV. Normal ≥55%.<br><br>
+<strong>4. Isovolumetric relaxation</strong> — Ventricular pressure drops below arterial → semilunar valves SNAP shut → <strong>S2</strong>. A2 before P2 normally. All valves closed again. Fastest pressure drop phase.<br><br>
+<strong>5. Ventricular filling</strong> — Ventricular pressure drops below atrial → AV valves open → rapid passive filling (can produce <em>S3</em>) → slow filling (diastasis) → atrial kick again.<br><br>
+<div class="pearl"><strong>⚡ Board Pearl:</strong> <strong>S3</strong> = rapid ventricular filling into a volume-overloaded ventricle (dilated HF, MR, VSD). <strong>S4</strong> = atrial kick against a stiff, noncompliant ventricle (HTN, HCM, aortic stenosis). S3+S4 = "gallop rhythm" → bad prognostic sign in heart failure.</div>
+<div class="qag">
+<div class="qac" onclick="useChip({textContent:'Give me board questions on cardiac physiology'})"><div class="qai">🎯</div><div><div class="qat">Quiz Me</div><div class="qad">Cardiac board Qs</div></div></div>
+<div class="qac" onclick="useChip({textContent:'Summarize cardiac physiology as study notes'})"><div class="qai">📝</div><div><div class="qat">Make Notes</div><div class="qad">High-yield summary</div></div></div>
+</div>`;
+  }
+  if(ql.includes('diabetes')||ql.includes('type 1')||ql.includes('type 2')){
+    return `Here's the comparison ⚡
+<div class="nc"><div class="qt"><span class="bdg ba">Endocrine</span><span class="bdg bc">High Yield</span></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px">
+<div class="ns"><div class="nst" style="color:var(--cyan)">Type 1 DM</div>
+<div class="nt"><strong>Mechanism:</strong> Autoimmune β-cell destruction (T-cell mediated)<br><strong>Age:</strong> Usually &lt;30<br><strong>Onset:</strong> Acute — often DKA<br><strong>Body type:</strong> Lean<br><strong>C-peptide:</strong> ↓↓ / absent<br><strong>Antibodies:</strong> Anti-GAD65, anti-insulin, anti-IA-2, anti-ZnT8<br><strong>Treatment:</strong> <em>Insulin required</em><br><strong>Genetics:</strong> HLA-DR3, DR4, DQ8</div></div>
+<div class="ns"><div class="nst" style="color:var(--accent)">Type 2 DM</div>
+<div class="nt"><strong>Mechanism:</strong> Insulin resistance → relative β-cell failure<br><strong>Age:</strong> Usually &gt;40 (↑ in youth)<br><strong>Onset:</strong> Gradual, often asymptomatic<br><strong>Body type:</strong> Obese (central)<br><strong>C-peptide:</strong> Normal or ↑<br><strong>Antibodies:</strong> Negative<br><strong>Treatment:</strong> <em>Metformin 1st line</em><br><strong>Genetics:</strong> Strong polygenic</div></div>
+</div>
+<div class="pb"><strong>⚡ Board Pearl:</strong> DKA = primarily T1 (but HHS = T2). LADA ("Type 1.5") = adult autoimmune, slow progression — check GAD antibodies in "T2" patients &lt;40 not responding to oral meds. Metformin MOA: ↓hepatic gluconeogenesis + ↑insulin sensitivity via AMPK activation. Don't give if eGFR &lt;30 (lactic acidosis risk).</div></div>
+<div class="qag">
+<div class="qac" onclick="useChip({textContent:'Board questions on diabetes management'})"><div class="qai">🎯</div><div><div class="qat">Quiz Me</div><div class="qad">DM questions</div></div></div>
+<div class="qac" onclick="useChip({textContent:'Explain DKA vs HHS pathophysiology'})"><div class="qai">🧠</div><div><div class="qat">DKA vs HHS</div><div class="qad">Deep dive</div></div></div>
+</div>`;
+  }
+  if(ql.includes('ace')||ql.includes('inhibitor')){
+    return `ACE Inhibitors — full breakdown 💊<br><br>
+<strong>Mechanism:</strong> Block angiotensin-converting enzyme → prevents Ang I → Ang II conversion. Also <em>inhibits bradykinin degradation</em> (ACE = kininase II).<br><br>
+<strong>Effects of blocking Ang II:</strong><br>
+→ <strong>Vasodilation</strong> (↓ TPR → ↓ BP)<br>
+→ <strong>↓ Aldosterone</strong> → ↓ Na⁺ retention, ↓ K⁺ excretion (watch for <em>hyperkalemia</em>)<br>
+→ <strong>↓ ADH</strong> → mild diuresis<br>
+→ <strong>↓ Cardiac remodeling</strong> (why they ↓ mortality in HF)<br>
+→ <strong>Efferent arteriole dilation</strong> → ↓ intraglomerular pressure → <em>renal protection in diabetes</em><br><br>
+<strong>Effects of ↑ bradykinin:</strong><br>
+→ More vasodilation (good)<br>
+→ <strong>Dry cough</strong> — #1 side effect (~10-15% of patients)<br>
+→ <strong>Angioedema</strong> — rare but life-threatening (more common in Black patients)<br><br>
+<strong>Clinical uses:</strong> HTN, HFrEF (↓ mortality), diabetic nephropathy (even if normotensive), post-MI (↓ remodeling), CKD with proteinuria<br><br>
+<div class="pearl"><strong>⚡ Board Pearls:</strong><br>• Cough → switch to <strong>ARB</strong> (no bradykinin effect)<br>• <strong>Contraindicated:</strong> pregnancy (category X — renal agenesis), bilateral RAS (will crash GFR), angioedema hx<br>• Monitor <strong>Cr + K⁺</strong> at 1-2 weeks — Cr rise &lt;30% is acceptable and expected<br>• ACEi + ARB together = ↑hyperkalemia, ↑AKI, no added benefit (ONTARGET trial)</div>`;
+  }
+  return `Let me help with that ⚡<br><br><strong>${q.charAt(0).toUpperCase()+q.slice(1)}</strong><br><br>
+I can approach this several ways — pick what's most useful:
+<div class="qag">
+<div class="qac" onclick="useChip({textContent:'Explain ${q.replace(/'/g,"\\'")} in detail'})"><div class="qai">🧠</div><div><div class="qat">Deep Explain</div><div class="qad">Full breakdown</div></div></div>
+<div class="qac" onclick="useChip({textContent:'Board questions on ${q.replace(/'/g,"\\'")}' })"><div class="qai">🎯</div><div><div class="qat">Board Qs</div><div class="qad">Practice</div></div></div>
+<div class="qac" onclick="useChip({textContent:'Summarize ${q.replace(/'/g,"\\'")} as notes'})"><div class="qai">📝</div><div><div class="qat">Study Notes</div><div class="qad">High-yield</div></div></div>
+<div class="qac" onclick="useChip({textContent:'Latest research on ${q.replace(/'/g,"\\'")}' })"><div class="qai">🔬</div><div><div class="qat">Research</div><div class="qad">Latest evidence</div></div></div>
+</div>`;
+}
+
+// Init
+document.getElementById('xpF').style.width=(xp/mxp*100)+'%';
+</script>
+</body>
+</html>
